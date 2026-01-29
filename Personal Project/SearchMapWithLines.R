@@ -6,9 +6,18 @@ library(janitor) # Highly recommended for cleaning column names
 
 # 1. Load and Clean Data
 # We clean names to remove spaces/special chars (e.g., "Region" -> "region")
-eyes_hurt_data <- read_csv('Personal Project/search_data/geoMap.csv') %>%
+eyes_hurt_data <- read_csv('Personal Project/search_data/geoMap.csv', skip = 0) %>%
   janitor::clean_names() %>% 
   rename(state = region) %>%
+  # Google Trends often puts the search term in the 2nd col; let's give it a generic name
+  rename(search_volume = 2) 
+
+
+eyes_hurt_data_before <- read_csv('Personal Project/search_data/geoMap-daybefore.csv', skip = 2) %>%
+  janitor::clean_names() %>% 
+  rename(state = region) %>%
+  # Change N/A values to 0
+  mutate(across(starts_with("search_volume"), ~replace_na(., 0))) %>%
   # Google Trends often puts the search term in the 2nd col; let's give it a generic name
   rename(search_volume = 2) 
 
@@ -75,3 +84,66 @@ tm_shape(map_data) +
     fontface = "bold",
     frame=TRUE
   )
+
+
+# 5. Correlation Analysis: Distance to Eclipse Central Line vs. Search Volume Change
+metros_proj <- st_transform(map_data, 5070)         # USA Albers
+eclipse_proj <- st_transform(eclipse_central_line, 5070)
+
+# Calculate change in search volume
+# eye_pain_change <- eyes_hurt_data %>%
+#   select(state, search_volume) %>%
+#   rename(search_volume_after = search_volume) %>%
+#   left_join(
+#     eyes_hurt_data_before %>%
+#       select(state, search_volume) %>%
+#       rename(search_volume_before = search_volume),
+#     by = "state"
+#   ) %>%
+#   mutate(search_volume = search_volume_after - search_volume_before) %>%
+#   select(state, search_volume)
+
+# Calculate distance in kilometers
+metros_proj$distance_km <- as.numeric(
+  st_distance(metros_proj, eclipse_proj)
+) / 1000
+
+plot(metros_proj["distance_km"])
+
+cor_test <- cor.test(
+  metros_proj$distance_km,
+  metros_proj$search_volume,
+  method = "spearman",
+  exact = FALSE)
+
+
+# Interaction term significant. Goal
+#
+
+
+
+cor_test
+
+
+plot(metros_proj["search_volume"])
+
+filtered <- metros_proj |>
+  filter(distance_km <= 800)
+
+cor.test(
+  filtered$distance_km,
+  filtered$search_volume,
+  method = "spearman",
+  exact = FALSE
+)
+
+ggplot(filtered)+
+  geom_point(aes(x=distance_km, y=search_volume)) +
+  geom_smooth(aes(x=distance_km, y=search_volume), method="lm")
+
+ggplot(metros_proj)+
+  geom_point(aes(x=distance_km, y=search_volume)) +
+  geom_smooth(aes(x=distance_km, y=search_volume), method="lm")
+
+
+

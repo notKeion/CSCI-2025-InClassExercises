@@ -13,3 +13,7 @@ The data for this analysis was collected from various sources, including:
  - [NASA](https://eclipse.gsfc.nasa.gov/SEpath/SEpath2001/SE2024Apr08Tpath.html): This source provides information about the lunar eclipse path and timing for our graphic overlay.
 
 
+ ## Bibliography
+ 
+
+
